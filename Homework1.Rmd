@@ -1,0 +1,204 @@
+---
+title: "Stats Homework 1"
+output: pdf_document
+---
+Scenario: As a researcher you are interested in understanding how two methods of inspecting code work. One method uses a checklist, and the other is a method called perspective-based reading (PBR). We have provide simulated data for an experiment comparing these inspections methods (Note: Be sure to download a local copy of the dataset before proceeding).
+
+```{r}
+library(reshape2) # for formatting and aggregation of data frames
+library(ggplot2) # for creating graphs
+library(dplyr) # for data manipulation and clean-up
+library(plotly) # for creating interactive web graphics from ggplot2 graphs
+library(knitr) # required for generating PDF output
+library(nortest)
+```
+
+# Getting help
+To get help in R about a function, for example `boxplot`, type `?boxplot` in the command line.
+
+# Loading the data
+For this part, load the inspection data ("inspection.csv") file located in the assignment folder with this file. 
+
+```{r}
+# code goes here
+inspection <- read.csv("C:/Users/nallagop/Desktop/Fall 2021/CS 567 Lab Studies/Assigments/Stats HW 1/inspection.csv")
+inspection
+```
+
+# Plotting
+You would like to know the descriptive statistics of the two inspection methods. Compare the samples via their mean, median, and box-plot distributions.
+
+```{r}
+# code goes here
+mean(inspection$pbr)
+median(inspection$pbr)
+mean(inspection$checklist)
+median(inspection$checklist)
+summary(inspection$pbr)
+summary(inspection$checklist)
+#mean(inspection$pbr) is less than mean(inspection$checklist)
+#median(inspection$pbr) is less than median(inspection$checklist)
+
+boxplot(inspection, col = "red")
+
+#boxplot - separately
+ggplot(inspection, aes(y = pbr, col = "red")) + geom_boxplot() + labs(title = "Pbr", y = "pbr")
+ggplot(inspection, aes(y = checklist, col = "red")) + geom_boxplot() + labs(title = "Checklist", y = "checklist")
+```
+
+# Normality
+You want to see if your data is normally distributed. Hint: You can use Shapiro-Wilk or Anderson-Darling. Justify which is more appropriate.
+
+```{r}
+#code goes here
+
+# Since the p-value is > 0.05 for both pbr and checklist we can use normality
+#(are Normally distributed). Also, #Shapiro-wilk has more power when it comes to
+#small samples (count <= 50), so it is better to use Shapiro-wilk than using 
+#Anderson-Darling. However, when it comes to larger values we can use Anderson-Darling. 
+
+shapiro.test(inspection$pbr)
+shapiro.test(inspection$checklist)
+#From the output, the p-value > 0.05 implying that the distribution of the data
+#are not significantly different from #normal distribution. In other words, 
+#we can assume the normality and they are statistically significant.
+
+#In addition to this, the best approach is to combine visual inspection and 
+#statistical tests to ensure normality. #So, I've used QQ plot for visual 
+#inspection.
+
+qqnorm(inspection$pbr)
+qqline(inspection$pbr, col = "red")
+qqnorm(inspection$checklist)
+qqline(inspection$checklist, col = "yellow")
+
+#if we want to use Anderson-Darling, this is how we can implement it.
+ad.test(inspection$pbr)
+ad.test(inspection$checklist)
+```
+
+# Bootstrapping
+You would like to do "bootstrap" your data to make sure that data parameters are robust. Bootstrapping is a statistical method for estimating the sampling distribution by sampling with replacement from the original sample. Note: You will need to do this to expand your "term project data" to include enough data for analysis.
+
+Bootstrap the data. Then compare and contrast the original dataset with the bootstrap (use descriptive statistics as before).
+
+```{r}
+# Step 1: Randomly resample data points for each treatment 20000 times  (hint: you can use sample or replicate)
+
+#used set.seed(1) so that it will start from 1 and there will be random numbers 
+#for every execution. rnorm() is used #to randomly resample data points for each
+#treatment 20000 times.
+set.seed(1)
+
+ExpandedPbr <- rnorm(20000, mean = mean(inspection$pbr), sd = 2)
+ExpandedChecklist <-  rnorm(20000, mean = mean(inspection$checklist), sd = 2)
+ExpandedInspection <- data.frame(pbr = ExpandedPbr, checklist = ExpandedChecklist)
+
+# when I use sample(), I'm getting a histogram which is not a bell curve, 
+#however, the mean of original and expanded data remains the same for both pbr 
+#and checklist.
+#ExpandedPbr <- sample((inspection$pbr),size = 40000, replace = TRUE)
+#ExpandedChecklist <- sample((inspection$checklist),size = 40000, replace = TRUE)
+
+# Step 2: Draw the histogram to compare the orignal with the bootstrap data for 
+#each treatment separately (hint: use #`hist`)
+hist(inspection$pbr, col = "red")
+hist(ExpandedPbr, col = "yellow")
+hist(inspection$checklist, col = "blue")
+hist(ExpandedChecklist, col = "green")
+
+# Step 3: Check the normality of the bootstrapped data.
+# For larger values it is always recommended to use Anderson-Darling to check 
+#the normality of the bootstrapped #data.
+ad.test(ExpandedPbr)
+ad.test(ExpandedChecklist)
+
+
+qqnorm(ExpandedPbr)
+qqline(ExpandedPbr, col = "red")
+qqnorm(ExpandedChecklist)
+qqline(ExpandedChecklist, col = "yellow")
+
+
+# Step 4: Compare the descriptive statistics of original with the bootstrapped data.
+mean(inspection$pbr)
+mean(ExpandedPbr)
+mean(inspection$checklist)
+mean(ExpandedChecklist)
+
+median(inspection$pbr)
+median(ExpandedPbr)
+median(inspection$checklist)
+median(ExpandedChecklist)
+boxplot(inspection$pbr,ExpandedPbr,inspection$checklist, ExpandedChecklist, names = c("pbr","ExpanedPbr","checklist","ExpandedChecklist"), col=c("red", "yellow", "blue", "green"))
+
+
+```
+## Summary:
+# Mean: pbr = 19.73333 and Expanded pbr= 19.71235 which are nearly similar with slight variation
+# Median: pbr = 20 and Expanded pbr= 19.71263 which are nearly similar with slight variation
+# Mean: checklist = 21.43333 and Expanded checklist= 21.41639 which are nearly similar with slight variation
+# Median: checklist = 22 and Expanded checklist= 21.43127 which are nearly similar with slight variation
+# Before expanding the data the histograms of both pbr and checklist doesn't seem to look like normal distribution. #However, after replicating the samples we get histograms in a bell curve shape which sums our assumptions that the #data is normally distributed.
+# Boxplot: We can observe that in the boxplot of original pbr/checklist and expanded pbr/checklist (respectively), #the more relevant data/samples are much closer and concentrated near the mean and the outliers are marked down. #Hence, it gives a clear representation that the expanded data is normally distributed for both pbr and checklist.
+
+-------------------------------------------------------------------------------------------------------------------
+
+In the rest of the HW, we will use the original dataset.
+
+#dataFormatting
+To run statistics you need your data needs to be `reshaped' to look like this:
+"","treatment","time"
+"1","pbr",20
+.....
+"2","checklist",19
+```{r}
+#code goes here (hint: use melt or reshape)
+
+
+melted <- melt(inspection, measure.vars = c("pbr","checklist"))
+row_num <- rep(c('1','2'),each = 30)
+melted <- data.frame(row_num,melted)
+names(melted) <- c("","treatment","time")
+melted
+```
+
+# T-tests
+Now you would like to statistically compare the mean time used for two inspection methods. Test and report for significance at 0.05.
+
+a) Perform a two-tailed t-test (assume the variances are equal).
+
+```{r}
+# code goes here
+
+t.test(melted$time ~ melted$treatment, alternative = "two.sided")
+```
+
+b) Perform a one-tailed t-test (assume PBR takes less time than checklist, variances are equal) and check if results are statistically significant.
+
+```{r}
+# code goes here
+#used less because PBR less time than checklist
+
+t.test(melted$time ~ melted$treatment, alternative = "less", var.equal = TRUE)
+```
+
+c)  Assume that in the study subjects were paired together by experience level and comparisons are done within pairs, and use a paired (two-tailed) t-test to check if the results are statistically significant.
+
+```{r}
+# code goes here
+t.test(melted$time~ melted$treatment, inspection = melted, paired = TRUE, alternative = "two.sided")
+```
+
+d) Re-do parts a,b,c using non-parametric tests instead (Wilcoxon tests, also known as Mann-Whitney) and compare the p-values to what you originally obtained.
+
+```{r}
+# code goes here for all 3 cases
+library(rstatix)
+wilcox.test(melted$time ~ melted$treatment, alternative = "two.sided")
+wilcox.test(melted$time ~ melted$treatment, alternative = "two.sided")
+wilcox.test(melted$time ~ melted$treatment, inspection = melted, paired = TRUE, alternative = "two.sided")
+
+```
+
+```
